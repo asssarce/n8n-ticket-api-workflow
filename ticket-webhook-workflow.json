@@ -1,0 +1,373 @@
+{
+  "name": "My workflow 4",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const data = $json.body;\n\nconst requiredFields = [\n  \"ticket_id\",\n  \"email\",\n  \"subject\",\n  \"message\",\n  \"customer_tier\",\n  \"created_at\"\n];\n\nfor (const field of requiredFields){\n  if (!data[field]) {\n    return {\n      json: {\n        success: false,\n        error: `Missing required field: ${field}`\n      }\n    };\n  }\n}\n\nreturn {\n  json: {\n    success: true,\n    data\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "2bc112be-3aa4-4a70-87e1-baac660aa04e",
+      "name": "Validate ticket payload"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const ticket = $json.data\n\nreturn {\n  json: {\n    ...ticket,\n    received_at : $now.toISO(),\n    status: 'new'\n    \n  }\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        0
+      ],
+      "id": "7c742670-598a-4de4-a385-f6135b6af586",
+      "name": "Enrich Ticket data"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "support-ticket",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7c0ac533-cfd3-4ab8-9522-91ffcf421eb4",
+      "name": "Receive Ticket Webhook",
+      "webhookId": "2cf7e8da-07a0-4ddd-a03a-8a356a4b648f",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "hVm45FBudSO8J9rH",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1bdv6n4SaITY0HsJ9XhY0uQGUyArFxGsInSkhzs88HeM",
+          "mode": "list",
+          "cachedResultName": "support_tickets_demo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bdv6n4SaITY0HsJ9XhY0uQGUyArFxGsInSkhzs88HeM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bdv6n4SaITY0HsJ9XhY0uQGUyArFxGsInSkhzs88HeM/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "ticket_id",
+              "lookupValue": "={{ $json.data.ticket_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        576,
+        -16
+      ],
+      "id": "e2da8a8f-61fb-4807-8f2b-29cf4576901b",
+      "name": "Check Duplicate Ticket",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "axVD7GbNPs7gP1RZ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "660b3324-699f-4a37-9322-7d4b1f068bf7",
+              "leftValue": "={{ $items().length}}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        784,
+        -16
+      ],
+      "id": "d793f3a9-72c1-437e-8ed0-0f04882ac702",
+      "name": "Is Duplicate Ticket?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Duplicate ticket_id\",\n  \"ticket_id\": \"{{$json.ticket_id}}\"\n}",
+        "options": {
+          "responseCode": 409
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1040,
+        -192
+      ],
+      "id": "becac0e0-e164-4e88-a048-a57fa576979a",
+      "name": "Respond - Duplicate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e1b57e1c-9fbe-47d5-a825-eb1f5762f0d6",
+              "leftValue": "={{$json.success}} ",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        0
+      ],
+      "id": "c7b4a414-9ba5-4657-a023-dfdded3bf806",
+      "name": "Is Payload Valid?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ \n{\n  success: false,\n  error: $json.error\n}\n}}",
+        "options": {
+          "responseCode": "={{ 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        528,
+        176
+      ],
+      "id": "1c1de573-75e5-4e24-a1b2-a6accf7b641c",
+      "name": "Reject - Missing Required Fields"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1bdv6n4SaITY0HsJ9XhY0uQGUyArFxGsInSkhzs88HeM",
+          "mode": "list",
+          "cachedResultName": "support_tickets_demo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bdv6n4SaITY0HsJ9XhY0uQGUyArFxGsInSkhzs88HeM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bdv6n4SaITY0HsJ9XhY0uQGUyArFxGsInSkhzs88HeM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "ticket_id"
+          ],
+          "schema": [
+            {
+              "id": "ticket_id",
+              "displayName": "ticket_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1216,
+        0
+      ],
+      "id": "dd67957c-e8c8-4209-b1c4-c2e2e4c8cd4f",
+      "name": "Create Ticket in Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "axVD7GbNPs7gP1RZ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ \n{\n  success: true,\n  ticket_id: $json.ticket_id,\n  status: $json.status\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1408,
+        0
+      ],
+      "id": "ae70dd45-c25b-4add-9dbc-46871f1b4004",
+      "name": "Respond - Ticket Created"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Validate ticket payload": {
+      "main": [
+        [
+          {
+            "node": "Is Payload Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich Ticket data": {
+      "main": [
+        [
+          {
+            "node": "Create Ticket in Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive Ticket Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate ticket payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate Ticket": {
+      "main": [
+        [
+          {
+            "node": "Is Duplicate Ticket?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Duplicate Ticket?": {
+      "main": [
+        [
+          {
+            "node": "Respond - Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enrich Ticket data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Payload Valid?": {
+      "main": [
+        [
+          {
+            "node": "Check Duplicate Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject - Missing Required Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Ticket in Sheet": {
+      "main": [
+        [
+          {
+            "node": "Respond - Ticket Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "30066cf4-f301-40de-8d92-4eaa70e47470",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0143635a5d7ddffa8c7a62e70d3f0a6f3cda3c1bcf344f4cb5689a58ad032e30"
+  },
+  "id": "QKD5zMGK6VoThdmY",
+  "tags": []
+}
