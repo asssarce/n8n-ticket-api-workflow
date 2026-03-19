@@ -1,5 +1,5 @@
 {
-  "name": "Ticket-webhook-workflow",
+  "name": "support ticket workflow",
   "nodes": [
     {
       "parameters": {
@@ -18,7 +18,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const ticket = $json.data\n\nreturn {\n  json: {\n    ...ticket,\n    received_at : $now.toISO(),\n    status: 'new'\n    \n  }\n}\n"
+        "jsCode": "const ticket = $(\"Validate ticket payload\").first().json.data\n\nreturn {\n  json: {\n    ...ticket,\n    received_at : $now.toISO(),\n    status: 'new'\n    \n  }\n}\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -49,7 +49,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "hVm45FBudSO8J9rH",
-          "name": "Header Auth account"
+          "name": "Header Auth account for ticket system"
         }
       }
     },
@@ -87,6 +87,7 @@
       ],
       "id": "e2da8a8f-61fb-4807-8f2b-29cf4576901b",
       "name": "Check Duplicate Ticket",
+      "alwaysOutputData": true,
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "axVD7GbNPs7gP1RZ",
@@ -106,11 +107,12 @@
           "conditions": [
             {
               "id": "660b3324-699f-4a37-9322-7d4b1f068bf7",
-              "leftValue": "={{ $items().length}}",
+              "leftValue": "={{ $input.first().json.ticket_id }}",
               "rightValue": 0,
               "operator": {
-                "type": "number",
-                "operation": "gt"
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
               }
             }
           ],
@@ -125,7 +127,8 @@
         -16
       ],
       "id": "d793f3a9-72c1-437e-8ed0-0f04882ac702",
-      "name": "Is Duplicate Ticket?"
+      "name": "Is Duplicate Ticket?",
+      "alwaysOutputData": false
     },
     {
       "parameters": {
@@ -363,7 +366,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "30066cf4-f301-40de-8d92-4eaa70e47470",
+  "versionId": "12045d8c-daa6-4d4b-994d-85eecb988385",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "0143635a5d7ddffa8c7a62e70d3f0a6f3cda3c1bcf344f4cb5689a58ad032e30"
