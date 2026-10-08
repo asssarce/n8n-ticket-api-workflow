@@ -97,7 +97,7 @@ Deployment using Docker
 ## 👩‍💻 Author
 
 Ashley Arce – Automation & Backend Enthusiast
-Email: ashley.arce@example.com
+Email: ashleyarce171@gmail.com
 
 Portfolio: https://github.com/asssarce
 
